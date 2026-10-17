@@ -45,9 +45,9 @@
 
 ---
 
-### 🚀 نحوه نصب سریع
+### 🚀 نحوه نصب سریع (سازگار با ایزابل ۴ و ۵)
 
-تنها با اجرای دستورات زیر در ترمینال سرور ایزابل:
+اسکریپت نصب به صورت خودکار نسخه سیستم‌عامل و ایزابل شما (**Issabel 4 / CentOS 7** یا **Issabel 5 / Rocky Linux 8**) را تشخیص می‌دهد:
 
 ```bash
 cd /tmp
@@ -57,13 +57,20 @@ chmod +x install.sh uninstall.sh
 ./install.sh
 ```
 
+#### گزینه‌های نصب (اختیاری):
+* **نصب خودکار با تأیید نسخه در ترمینال:** `./install.sh`
+* **اجبار به حالت ایزابل 4:** `./install.sh --v4`
+* **اجبار به حالت ایزابل 5:** `./install.sh --v5`
+* **نصب بدون توقف (Silent/Non-interactive):** `./install.sh -y`
+
 **اسکریپت نصب به صورت خودکار موارد زیر را انجام می‌دهد:**
+- تشخیص هوشمند نسخه ایزابل ۴ و ۵ (PHP 5.4 تا PHP 8.x)
 - پشتیبان‌گیری خودکار از فایل‌های سیستم قبل از هر تغییر (`.bak`)
 - انتقال فایل‌های ماژول به مسیر `/var/www/html/modules/persian_calendar`
 - ثبت در دیتابیس منوی ایزابل (`menu.db`) و تنظیم مجوزهای دسترسی (`acl.db`)
 - تزریق هوک بک‌اند در `/var/www/html/index.php`
 - افزودن استایل‌ها و اسکریپت‌ها به قالب‌های فعال (`tenant`, `elastixneo`)
-- تنظیم مالکیت فایل‌ها برای کاربر `asterisk:asterisk` و پاکسازی کش Smarty
+- تنظیم دسترسی‌ها و SELinux context، پاکسازی کش فریم‌ورک و Smarty و ریلود وب‌سرور (Apache / PHP-FPM)
 
 ---
 
@@ -118,15 +125,21 @@ A comprehensive, production-grade Persian (Solar Hijri / Jalali) localization mo
 
 ---
 
-### 🚀 Easy Installation
+### 🚀 Easy Installation (Universal: Issabel 4 & 5)
 
-Installation takes just one command:
+The installer automatically detects whether you are running **Issabel 4 (CentOS 7)** or **Issabel 5 (Rocky Linux / AlmaLinux 8)**:
 
 ```bash
 cd /path/to/PersianIssabel
 chmod +x install.sh uninstall.sh
 sudo ./install.sh
 ```
+
+#### Optional CLI Flags:
+- Interactive / Auto-detection: `sudo ./install.sh`
+- Force Issabel 4: `sudo ./install.sh --v4`
+- Force Issabel 5: `sudo ./install.sh --v5`
+- Non-interactive (auto-accept): `sudo ./install.sh -y`
 
 ---
 

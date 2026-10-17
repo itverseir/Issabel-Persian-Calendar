@@ -144,10 +144,18 @@ if [ -d "$MODULE_DEST" ]; then
     echo -e "${GREEN}  ✔ فایل‌های ماژول حذف شدند.${NC}"
 fi
 
-# 5. Clear Cache
-echo -e "${BLUE}[5/5] پاکسازی کش قالب‌ها ...${NC}"
+# 5. Clear Cache and Reload Services
+echo -e "${BLUE}[5/5] پاکسازی کش قالب‌ها و راه‌اندازی مجدد سرویس‌های وب ...${NC}"
 rm -rf /var/spool/issabel/smarty_cache/* 2>/dev/null || true
 rm -rf "$WEB_ROOT/var/templates_c/"* 2>/dev/null || true
+rm -rf "$WEB_ROOT/var/cache/"* 2>/dev/null || true
+
+# Reset OPcache
+php -r 'if (function_exists("opcache_reset")) { opcache_reset(); }' 2>/dev/null || true
+
+# Reload web services
+systemctl reload php-fpm 2>/dev/null || true
+systemctl reload httpd 2>/dev/null || service httpd reload 2>/dev/null || true
 
 echo ""
 echo -e "${GREEN}${BOLD}=================================================================="
