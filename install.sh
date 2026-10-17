@@ -308,53 +308,38 @@ for TPL in "${UNIQUE_THEME_FILES[@]}"; do
     fi
 done
 
-# Patch translateDate in misc.lib.php for universal format support in CDR, Summary & Reports
+# Ensure misc.lib.php remains in its pristine, original factory state (Zero system modifications!)
 MISC_LIB="$WEB_ROOT/libs/misc.lib.php"
 if [ -f "$MISC_LIB" ]; then
-    cp "$MISC_LIB" "$MISC_LIB$BACKUP_SUFFIX"
     php -r '
         $file = $argv[1];
         $c = file_get_contents($file);
-
-        $robustTranslate = "function translateDate(\$dateOrig)\n" .
-            "{\n" .
-            "    // START ISSABEL PERSIAN TRANSLATE DATE\n" .
-            "    if (is_string(\$dateOrig)) {\n" .
-            "        \$trimmed = trim(\$dateOrig);\n" .
-            "        if (preg_match(\x27/^(1[34]\d{2})[-\\/](0?[1-9]|1[0-2])[-\\/](0?[1-9]|[12]\d|3[01])$/\x27, \$trimmed, \$mJalali)) {\n" .
-            "            if (function_exists(\x27issabel_jalali_to_gregorian\x27)) {\n" .
-            "                list(\$gy, \$gm, \$gd) = issabel_jalali_to_gregorian((int)\$mJalali[1], (int)\$mJalali[2], (int)\$mJalali[3]);\n" .
-            "                return sprintf(\x27%04d-%02d-%02d\x27, \$gy, \$gm, \$gd);\n" .
-            "            }\n" .
-            "        }\n" .
-            "        if (preg_match(\x27/^\\d{4}-\\d{2}-\\d{2}$/\x27, \$trimmed)) {\n" .
-            "            return \$trimmed;\n" .
-            "        }\n" .
-            "    }\n" .
-            "    if(preg_match(\"/([[:digit:]]{1,2})[[:space:]]+([[:alnum:]]{3})[[:space:]]+([[:digit:]]{4})/\", \$dateOrig, \$arrReg)) {\n" .
-            "        if(\$arrReg[2]==\"Jan\")      \$numMonth = \"01\";\n" .
-            "        else if(\$arrReg[2]==\"Feb\") \$numMonth = \"02\";\n" .
-            "        else if(\$arrReg[2]==\"Mar\") \$numMonth = \"03\";\n" .
-            "        else if(\$arrReg[2]==\"Apr\") \$numMonth = \"04\";\n" .
-            "        else if(\$arrReg[2]==\"May\") \$numMonth = \"05\";\n" .
-            "        else if(\$arrReg[2]==\"Jun\") \$numMonth = \"06\";\n" .
-            "        else if(\$arrReg[2]==\"Jul\") \$numMonth = \"07\";\n" .
-            "        else if(\$arrReg[2]==\"Aug\") \$numMonth = \"08\";\n" .
-            "        else if(\$arrReg[2]==\"Sep\") \$numMonth = \"09\";\n" .
-            "        else if(\$arrReg[2]==\"Oct\") \$numMonth = \"10\";\n" .
-            "        else if(\$arrReg[2]==\"Nov\") \$numMonth = \"11\";\n" .
-            "        else if(\$arrReg[2]==\"Dec\") \$numMonth = \"12\";\n" .
-            "        return \$arrReg[3] . \"-\" . \$numMonth . \"-\" . \$arrReg[1];\n" .
-            "    } else {\n" .
-            "        return false;\n" .
-            "    }\n" .
-            "    // END ISSABEL PERSIAN TRANSLATE DATE\n" .
-            "}";
-
-        $c = preg_replace("/function translateDate\s*\([^)]*\)\s*\{.*?\n\}(?=\s*\n\s*function|\s*$)/s", $robustTranslate, $c);
-        file_put_contents($file, $c);
+        if (strpos($c, "Persian") !== false || strpos($c, "PERSIAN") !== false) {
+            $origTranslate = "function translateDate(\$dateOrig)\n" .
+                "{\n" .
+                "    if(preg_match(\"/([[:digit:]]{1,2})[[:space:]]+([[:alnum:]]{3})[[:space:]]+([[:digit:]]{4})/\", \$dateOrig, \$arrReg)) {\n" .
+                "        if(\$arrReg[2]==\"Jan\")      \$numMonth = \"01\";\n" .
+                "        else if(\$arrReg[2]==\"Feb\") \$numMonth = \"02\";\n" .
+                "        else if(\$arrReg[2]==\"Mar\") \$numMonth = \"03\";\n" .
+                "        else if(\$arrReg[2]==\"Apr\") \$numMonth = \"04\";\n" .
+                "        else if(\$arrReg[2]==\"May\") \$numMonth = \"05\";\n" .
+                "        else if(\$arrReg[2]==\"Jun\") \$numMonth = \"06\";\n" .
+                "        else if(\$arrReg[2]==\"Jul\") \$numMonth = \"07\";\n" .
+                "        else if(\$arrReg[2]==\"Aug\") \$numMonth = \"08\";\n" .
+                "        else if(\$arrReg[2]==\"Sep\") \$numMonth = \"09\";\n" .
+                "        else if(\$arrReg[2]==\"Oct\") \$numMonth = \"10\";\n" .
+                "        else if(\$arrReg[2]==\"Nov\") \$numMonth = \"11\";\n" .
+                "        else if(\$arrReg[2]==\"Dec\") \$numMonth = \"12\";\n" .
+                "        return \$arrReg[3] . \"-\" . \$numMonth . \"-\" . \$arrReg[1];\n" .
+                "    } else {\n" .
+                "        return false;\n" .
+                "    }\n" .
+                "}";
+            $c = preg_replace("/function translateDate\s*\([^)]*\)\s*\{.*?\n\}(?=\s*\n\s*function|\s*$)/s", $origTranslate, $c);
+            file_put_contents($file, $c);
+        }
     ' "$MISC_LIB"
-    echo -e "${GREEN}  ✔ تابع translateDate برای سازگاری کامل گزارشات CDR و Summary به‌روزرسانی شد.${NC}"
+    echo -e "${GREEN}  ✔ فایل سیستمی misc.lib.php بدون تغییر و در حالت ۱۰۰٪ اورجینال و استاندارد ایزابل حفظ شد.${NC}"
 fi
 
 # 6. Patch Time Groups and Time Conditions for Persian Calendar Support

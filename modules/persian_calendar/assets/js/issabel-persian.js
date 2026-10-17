@@ -817,10 +817,11 @@
             var input = inputs[i];
             var val = Core.toLatinDigits(input.value.trim());
             var jMatch = val.match(/^(1[34]\d{2})[-/](0?[1-9]|1[0-2])[-/](0?[1-9]|[12]\d|3[01])$/);
-            if (jMatch) {
-                var jy = parseInt(jMatch[1], 10);
-                var jm = parseInt(jMatch[2], 10);
-                var jd = parseInt(jMatch[3], 10);
+            var dMatch = !jMatch ? val.match(/^(0?[1-9]|[12]\d|3[01])[-/](0?[1-9]|1[0-2])[-/](1[34]\d{2})$/) : null;
+            if (jMatch || dMatch) {
+                var jy = jMatch ? parseInt(jMatch[1], 10) : parseInt(dMatch[3], 10);
+                var jm = jMatch ? parseInt(jMatch[2], 10) : parseInt(dMatch[2], 10);
+                var jd = jMatch ? parseInt(jMatch[3], 10) : parseInt(dMatch[1], 10);
                 var origVal = input.value;
                 input.value = toGregorianIssabelFormat(jy, jm, jd);
                 // In case submission doesn't navigate (e.g. AJAX or validation error), revert value after tick
@@ -840,22 +841,26 @@
             convertFormDates(e.target);
         }, true);
 
-        // Hook native HTMLFormElement.prototype.submit
+        // Hook native HTMLFormElement.prototype.submit safely
         if (typeof HTMLFormElement !== 'undefined' && HTMLFormElement.prototype && HTMLFormElement.prototype.submit) {
             var origNativeSubmit = HTMLFormElement.prototype.submit;
             HTMLFormElement.prototype.submit = function() {
-                convertFormDates(this);
-                return origNativeSubmit.apply(this, arguments);
+                try {
+                    convertFormDates(this);
+                } catch (e) {}
+                return origNativeSubmit.call(this);
             };
         }
 
-        // Hook jQuery .submit()
+        // Hook jQuery .submit() safely
         if (window.jQuery && window.jQuery.fn && window.jQuery.fn.submit) {
             var origJqSubmit = window.jQuery.fn.submit;
             window.jQuery.fn.submit = function() {
                 if (arguments.length === 0) {
                     this.each(function() {
-                        convertFormDates(this);
+                        try {
+                            convertFormDates(this);
+                        } catch (e) {}
                     });
                 }
                 return origJqSubmit.apply(this, arguments);
@@ -883,6 +888,7 @@
                     if (m.target && m.target.id === 'issabelDatePickerPopup') continue;
                     if (m.target && m.target.id === 'issabelPersianClockBadge') continue;
                     if (m.target && (m.target.className === 'issabel-date-wrapper' || m.target.className === 'issabel-shamsi-date')) continue;
+                    if (m.target && m.target.closest && (m.target.closest('.issabel-date-wrapper') || m.target.closest('#issabelDatePickerPopup'))) continue;
                     shouldProcess = true;
                     break;
                 }

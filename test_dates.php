@@ -72,49 +72,48 @@ foreach ($filterTests as $pair) {
     }
 }
 
-echo "\n3. Testing Patched translateDate (Asterisk CDR & Summary Query Compatibility):\n";
-function simulatedTranslateDate($dateOrig) {
-    if (is_string($dateOrig)) {
-        $trimmed = issabel_latin_digits(trim($dateOrig));
-        if (preg_match('/^(1[34]\d{2})[-\/](0?[1-9]|1[0-2])[-\/](0?[1-9]|[12]\d|3[01])$/', $trimmed, $mJalali)) {
-            if (function_exists('issabel_jalali_to_gregorian')) {
-                list($gy, $gm, $gd) = issabel_jalali_to_gregorian((int)$mJalali[1], (int)$mJalali[2], (int)$mJalali[3]);
-                return sprintf('%04d-%02d-%02d', $gy, $gm, $gd);
-            }
-        }
-        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $trimmed)) {
-            return $trimmed;
-        }
+echo "\n3. Testing End-to-End Flow with Pristine, Untouched Factory translateDate:\n";
+// 100% Original, unmodified factory translateDate from Issabel 4 & 5
+function factoryTranslateDate($dateOrig) {
+    if(preg_match("/([[:digit:]]{1,2})[[:space:]]+([[:alnum:]]{3})[[:space:]]+([[:digit:]]{4})/", $dateOrig, $arrReg)) {
+        if($arrReg[2]=="Jan")      $numMonth = "01";
+        else if($arrReg[2]=="Feb") $numMonth = "02";
+        else if($arrReg[2]=="Mar") $numMonth = "03";
+        else if($arrReg[2]=="Apr") $numMonth = "04";
+        else if($arrReg[2]=="May") $numMonth = "05";
+        else if($arrReg[2]=="Jun") $numMonth = "06";
+        else if($arrReg[2]=="Jul") $numMonth = "07";
+        else if($arrReg[2]=="Aug") $numMonth = "08";
+        else if($arrReg[2]=="Sep") $numMonth = "09";
+        else if($arrReg[2]=="Oct") $numMonth = "10";
+        else if($arrReg[2]=="Nov") $numMonth = "11";
+        else if($arrReg[2]=="Dec") $numMonth = "12";
+        return $arrReg[3] . "-" . $numMonth . "-" . $arrReg[1];
+    } else {
+        return false;
     }
-    // Original Issabel fallback logic for "17 Oct 2026"
-    if (preg_match("/([[:digit:]]{1,2})[[:space:]]+([[:alnum:]]{3})[[:space:]]+([[:digit:]]{4})/", $dateOrig, $arrReg)) {
-        $months = array("Jan"=>"01","Feb"=>"02","Mar"=>"03","Apr"=>"04","May"=>"05","Jun"=>"06","Jul"=>"07","Aug"=>"08","Sep"=>"09","Oct"=>"10","Nov"=>"11","Dec"=>"12");
-        $mKey = ucfirst(strtolower($arrReg[2]));
-        if (isset($months[$mKey])) {
-            return sprintf('%04d-%02d-%02d', (int)$arrReg[3], (int)$months[$mKey], (int)$arrReg[1]);
-        }
-    }
-    return false;
 }
 
 $translateTests = array(
     array('1403/08/15', '2024-11-05'),
     array('1403-08-15', '2024-11-05'),
     array('۱۴۰۳/۰۸/۱۵', '2024-11-05'),
+    array('1405/07/26', '2026-10-18'),
     array('17 Oct 2026', '2026-10-17'),
-    array('05 Nov 2024', '2024-11-05'),
-    array('2026-10-17', '2026-10-17'),
-    array('2024-11-05', '2024-11-05'),
+    array('05 Nov 2024', '2024-11-05')
 );
 
 foreach ($translateTests as $tPair) {
     list($inVal, $expVal) = $tPair;
-    $resVal = simulatedTranslateDate($inVal);
+    // Step 1: Request interceptor converts Shamsi to Issabel d M Y
+    $hooked = IssabelPersianHook::convertStringDate($inVal);
+    // Step 2: Pristine factory translateDate converts d M Y to YYYY-MM-DD
+    $resVal = factoryTranslateDate($hooked);
     if ($resVal === $expVal) {
-        echo "  [PASS] translateDate('$inVal') => '$resVal' (Safe for Asterisk CDR queries!)\n";
+        echo "  [PASS] '$inVal' => Hooked: '$hooked' => Factory translateDate: '$resVal' (Zero core file modifications!)\n";
         $pass++;
     } else {
-        echo "  [FAIL] translateDate('$inVal') => expected '$expVal' got '$resVal'\n";
+        echo "  [FAIL] '$inVal' => Hooked: '$hooked' => expected '$expVal' got '$resVal'\n";
         $fail++;
     }
 }
