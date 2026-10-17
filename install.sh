@@ -268,6 +268,18 @@ THEME_FILES=(
     "$WEB_ROOT/modules/cdrreport/themes/default/cel.tpl"
 )
 
+# Dynamically detect any additional installed themes (e.g. Issabel 5 themes)
+if [ -d "$WEB_ROOT/themes" ]; then
+    while IFS= read -r extra_tpl; do
+        if [ -n "$extra_tpl" ] && [ -f "$extra_tpl" ]; then
+            THEME_FILES+=("$extra_tpl")
+        fi
+    done < <(find "$WEB_ROOT/themes" -type f \( -name "index.tpl" -o -name "popup.tpl" \) 2>/dev/null)
+fi
+
+# Deduplicate template files
+readarray -t UNIQUE_THEME_FILES < <(printf "%s\n" "${THEME_FILES[@]}" | sort -u)
+
 VERSION="1.1.0"
 TAG_INJECT="<!-- START ISSABEL PERSIAN CALENDAR -->
 <link rel=\"stylesheet\" type=\"text/css\" href=\"modules/persian_calendar/assets/css/persian-datepicker.css?v=$VERSION\" />
@@ -276,7 +288,7 @@ TAG_INJECT="<!-- START ISSABEL PERSIAN CALENDAR -->
 <script type=\"text/javascript\" src=\"modules/persian_calendar/assets/js/issabel-persian.js?v=$VERSION\"></script>
 <!-- END ISSABEL PERSIAN CALENDAR -->"
 
-for TPL in "${THEME_FILES[@]}"; do
+for TPL in "${UNIQUE_THEME_FILES[@]}"; do
     if [ -f "$TPL" ]; then
         cp "$TPL" "$TPL$BACKUP_SUFFIX"
         php -r '
@@ -296,33 +308,45 @@ for TPL in "${THEME_FILES[@]}"; do
     fi
 done
 
-# Patch translateDate in misc.lib.php for universal format support
+# Patch translateDate in misc.lib.php for universal format support in CDR, Summary & Reports
 MISC_LIB="$WEB_ROOT/libs/misc.lib.php"
 if [ -f "$MISC_LIB" ]; then
-    if ! grep -q "translateDate - Persian support" "$MISC_LIB"; then
-        cp "$MISC_LIB" "$MISC_LIB$BACKUP_SUFFIX"
-        php -r '
-            $file = $argv[1];
-            $c = file_get_contents($file);
-            $search = "function translateDate(" . "\$dateOrig)";
-            $pos = strpos($c, $search);
-            if ($pos !== false) {
-                $bracePos = strpos($c, "{", $pos);
-                if ($bracePos !== false) {
-                    $injection = "\n        // translateDate - Persian support\n" .
-                                 "        if (function_exists(\"issabel_to_shamsi\")) {\n" .
-                                 "            \$cfg = class_exists(\"IssabelPersianHook\") ? IssabelPersianHook::getConfig() : array();\n" .
-                                 "            if (!empty(\$cfg[\"enabled\"]) && !empty(\$cfg[\"table_dates_enabled\"])) {\n" .
-                                 "                return issabel_to_shamsi(\$dateOrig, \"Y/m/d\");\n" .
-                                 "            }\n" .
-                                 "        }\n";
-                    $c = substr_replace($c, $injection, $bracePos + 1, 0);
-                    file_put_contents($file, $c);
-                }
+    cp "$MISC_LIB" "$MISC_LIB$BACKUP_SUFFIX"
+    php -r '
+        $file = $argv[1];
+        $c = file_get_contents($file);
+
+        // 1. Clean any previous buggy or old Persian patch
+        $c = preg_replace("/\n[ \t]*\/\/[ \t]*translateDate - Persian support.*?\n[ \t]*\}\n[ \t]*\}/s", "", $c);
+        $c = preg_replace("/\n[ \t]*\/\/[ \t]*START ISSABEL PERSIAN TRANSLATE DATE.*?\/\/[ \t]*END ISSABEL PERSIAN TRANSLATE DATE\n?/s", "", $c);
+
+        // 2. Inject clean, correct translateDate support (ALWAYS returns Gregorian YYYY-MM-DD for Asterisk CDR queries!)
+        $search = "function translateDate(" . "\$dateOrig)";
+        $pos = strpos($c, $search);
+        if ($pos !== false) {
+            $bracePos = strpos($c, "{", $pos);
+            if ($bracePos !== false) {
+                $injection = "\n        // START ISSABEL PERSIAN TRANSLATE DATE\n" .
+                             "        // Convert Shamsi date (e.g. 1403/08/15) to Gregorian ISO (YYYY-MM-DD) for database queries\n" .
+                             "        if (is_string(\$dateOrig)) {\n" .
+                             "            \$trimmed = trim(\$dateOrig);\n" .
+                             "            if (preg_match(\x27/^(1[34]\d{2})[-\/](0?[1-9]|1[0-2])[-\/](0?[1-9]|[12]\d|3[01])$/\x27, \$trimmed, \$mJalali)) {\n" .
+                             "                if (function_exists(\x27issabel_jalali_to_gregorian\x27)) {\n" .
+                             "                    list(\$gy, \$gm, \$gd) = issabel_jalali_to_gregorian((int)\$mJalali[1], (int)\$mJalali[2], (int)\$mJalali[3]);\n" .
+                             "                    return sprintf(\x27%04d-%02d-%02d\x27, \$gy, \$gm, \$gd);\n" .
+                             "                }\n" .
+                             "            }\n" .
+                             "            if (preg_match(\x27/^\d{4}-\d{2}-\d{2}$/\x27, \$trimmed)) {\n" .
+                             "                return \$trimmed;\n" .
+                             "            }\n" .
+                             "        }\n" .
+                             "        // END ISSABEL PERSIAN TRANSLATE DATE\n";
+                $c = substr_replace($c, $injection, $bracePos + 1, 0);
             }
-        ' "$MISC_LIB"
-        echo -e "${GREEN}  ✔ تابع translateDate برای سازگاری کامل گزارشات به‌روزرسانی شد.${NC}"
-    fi
+        }
+        file_put_contents($file, $c);
+    ' "$MISC_LIB"
+    echo -e "${GREEN}  ✔ تابع translateDate برای سازگاری کامل گزارشات CDR و Summary به‌روزرسانی شد.${NC}"
 fi
 
 # 6. Patch Time Groups and Time Conditions for Persian Calendar Support

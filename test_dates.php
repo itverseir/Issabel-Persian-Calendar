@@ -72,7 +72,54 @@ foreach ($filterTests as $pair) {
     }
 }
 
-echo "\n3. Testing Persian Digits formatting:\n";
+echo "\n3. Testing Patched translateDate (Asterisk CDR & Summary Query Compatibility):\n";
+function simulatedTranslateDate($dateOrig) {
+    if (is_string($dateOrig)) {
+        $trimmed = issabel_latin_digits(trim($dateOrig));
+        if (preg_match('/^(1[34]\d{2})[-\/](0?[1-9]|1[0-2])[-\/](0?[1-9]|[12]\d|3[01])$/', $trimmed, $mJalali)) {
+            if (function_exists('issabel_jalali_to_gregorian')) {
+                list($gy, $gm, $gd) = issabel_jalali_to_gregorian((int)$mJalali[1], (int)$mJalali[2], (int)$mJalali[3]);
+                return sprintf('%04d-%02d-%02d', $gy, $gm, $gd);
+            }
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $trimmed)) {
+            return $trimmed;
+        }
+    }
+    // Original Issabel fallback logic for "17 Oct 2026"
+    if (preg_match("/([[:digit:]]{1,2})[[:space:]]+([[:alnum:]]{3})[[:space:]]+([[:digit:]]{4})/", $dateOrig, $arrReg)) {
+        $months = array("Jan"=>"01","Feb"=>"02","Mar"=>"03","Apr"=>"04","May"=>"05","Jun"=>"06","Jul"=>"07","Aug"=>"08","Sep"=>"09","Oct"=>"10","Nov"=>"11","Dec"=>"12");
+        $mKey = ucfirst(strtolower($arrReg[2]));
+        if (isset($months[$mKey])) {
+            return sprintf('%04d-%02d-%02d', (int)$arrReg[3], (int)$months[$mKey], (int)$arrReg[1]);
+        }
+    }
+    return false;
+}
+
+$translateTests = array(
+    array('1403/08/15', '2024-11-05'),
+    array('1403-08-15', '2024-11-05'),
+    array('۱۴۰۳/۰۸/۱۵', '2024-11-05'),
+    array('17 Oct 2026', '2026-10-17'),
+    array('05 Nov 2024', '2024-11-05'),
+    array('2026-10-17', '2026-10-17'),
+    array('2024-11-05', '2024-11-05'),
+);
+
+foreach ($translateTests as $tPair) {
+    list($inVal, $expVal) = $tPair;
+    $resVal = simulatedTranslateDate($inVal);
+    if ($resVal === $expVal) {
+        echo "  [PASS] translateDate('$inVal') => '$resVal' (Safe for Asterisk CDR queries!)\n";
+        $pass++;
+    } else {
+        echo "  [FAIL] translateDate('$inVal') => expected '$expVal' got '$resVal'\n";
+        $fail++;
+    }
+}
+
+echo "\n4. Testing Persian Digits formatting:\n";
 $digitsTest = issabel_persian_digits("1403/08/15 12:30:45");
 if ($digitsTest === "۱۴۰۳/۰۸/۱۵ ۱۲:۳۰:۴۵") {
     echo "  [PASS] '$digitsTest'\n";
@@ -82,7 +129,7 @@ if ($digitsTest === "۱۴۰۳/۰۸/۱۵ ۱۲:۳۰:۴۵") {
     $fail++;
 }
 
-echo "\n4. Testing Time Groups Shamsi Engine (GotoIfTime Expansion):\n";
+echo "\n5. Testing Time Groups Shamsi Engine (GotoIfTime Expansion):\n";
 $tgPath = file_exists('/var/www/html/modules/persian_calendar/libs/timegroups_persian.php')
     ? '/var/www/html/modules/persian_calendar/libs/timegroups_persian.php'
     : __DIR__ . '/modules/persian_calendar/libs/timegroups_persian.php';

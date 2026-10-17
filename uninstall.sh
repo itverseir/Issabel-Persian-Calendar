@@ -68,7 +68,18 @@ THEME_FILES=(
     "$WEB_ROOT/modules/cdrreport/themes/default/cel.tpl"
 )
 
-for TPL in "${THEME_FILES[@]}"; do
+# Dynamically detect any additional installed themes (e.g. Issabel 5 themes)
+if [ -d "$WEB_ROOT/themes" ]; then
+    while IFS= read -r extra_tpl; do
+        if [ -n "$extra_tpl" ] && [ -f "$extra_tpl" ]; then
+            THEME_FILES+=("$extra_tpl")
+        fi
+    done < <(find "$WEB_ROOT/themes" -type f \( -name "index.tpl" -o -name "popup.tpl" -o -name "_menu.tpl" \) 2>/dev/null)
+fi
+
+readarray -t UNIQUE_THEME_FILES < <(printf "%s\n" "${THEME_FILES[@]}" | sort -u)
+
+for TPL in "${UNIQUE_THEME_FILES[@]}"; do
     if [ -f "$TPL" ]; then
         php -r '
             $file = $argv[1];
@@ -86,7 +97,8 @@ if [ -f "$MISC_LIB" ]; then
     php -r '
         $file = $argv[1];
         $c = file_get_contents($file);
-        $c = preg_replace("/\/\/ translateDate - Persian support.*?\n    }/s", "", $c);
+        $c = preg_replace("/\n[ \t]*\/\/[ \t]*translateDate - Persian support.*?\n[ \t]*\}\n[ \t]*\}/s", "", $c);
+        $c = preg_replace("/\n[ \t]*\/\/[ \t]*START ISSABEL PERSIAN TRANSLATE DATE.*?\/\/[ \t]*END ISSABEL PERSIAN TRANSLATE DATE\n?/s", "", $c);
         file_put_contents($file, $c);
     ' "$MISC_LIB"
 fi

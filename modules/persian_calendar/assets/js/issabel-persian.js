@@ -810,23 +810,57 @@
     }
 
     // 9. Form Submission Interceptor: sends Issabel's native "d M Y" format (e.g. "15 Oct 2026")
+    function convertFormDates(form) {
+        if (!form || !form.querySelectorAll) return;
+        var inputs = form.querySelectorAll('input.issabel-persian-input, input.datepicker, input.hasDatepicker, input[id*="date"], input[name*="date"], input[id*="calldate"], input[name*="calldate"], input[data-gregorian]');
+        for (var i = 0; i < inputs.length; i++) {
+            var input = inputs[i];
+            var val = Core.toLatinDigits(input.value.trim());
+            var jMatch = val.match(/^(1[34]\d{2})[-/](0?[1-9]|1[0-2])[-/](0?[1-9]|[12]\d|3[01])$/);
+            if (jMatch) {
+                var jy = parseInt(jMatch[1], 10);
+                var jm = parseInt(jMatch[2], 10);
+                var jd = parseInt(jMatch[3], 10);
+                var origVal = input.value;
+                input.value = toGregorianIssabelFormat(jy, jm, jd);
+                // In case submission doesn't navigate (e.g. AJAX or validation error), revert value after tick
+                (function(inp, old) {
+                    setTimeout(function() {
+                        if (inp.value !== old && inp.value.match(/^[0-3]?\d\s+[A-Za-z]{3}\s+20\d{2}$/)) {
+                            inp.value = old;
+                        }
+                    }, 800);
+                })(input, origVal);
+            }
+        }
+    }
+
     function hookFormSubmissions() {
         document.addEventListener('submit', function(e) {
-            var form = e.target;
-            var inputs = form.querySelectorAll('input.issabel-persian-input, input[id*="date"], input[name*="date"]');
-            for (var i = 0; i < inputs.length; i++) {
-                var input = inputs[i];
-                var val = Core.toLatinDigits(input.value.trim());
-                var jMatch = val.match(/^(1[34]\d{2})[-/](0?[1-9]|1[0-2])[-/](0?[1-9]|[12]\d|3[01])$/);
-                if (jMatch) {
-                    var jy = parseInt(jMatch[1], 10);
-                    var jm = parseInt(jMatch[2], 10);
-                    var jd = parseInt(jMatch[3], 10);
-                    // Set to "d M Y" format expected by all Issabel form validators and translateDate
-                    input.value = toGregorianIssabelFormat(jy, jm, jd);
-                }
-            }
+            convertFormDates(e.target);
         }, true);
+
+        // Hook native HTMLFormElement.prototype.submit
+        if (typeof HTMLFormElement !== 'undefined' && HTMLFormElement.prototype && HTMLFormElement.prototype.submit) {
+            var origNativeSubmit = HTMLFormElement.prototype.submit;
+            HTMLFormElement.prototype.submit = function() {
+                convertFormDates(this);
+                return origNativeSubmit.apply(this, arguments);
+            };
+        }
+
+        // Hook jQuery .submit()
+        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.submit) {
+            var origJqSubmit = window.jQuery.fn.submit;
+            window.jQuery.fn.submit = function() {
+                if (arguments.length === 0) {
+                    this.each(function() {
+                        convertFormDates(this);
+                    });
+                }
+                return origJqSubmit.apply(this, arguments);
+            };
+        }
     }
 
     // 10. Bootstrap everything
