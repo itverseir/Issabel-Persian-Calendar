@@ -91,6 +91,43 @@ for TPL in "${UNIQUE_THEME_FILES[@]}"; do
     fi
 done
 
+# Clean Admin Templates and Headers (Issabel 5)
+ADMIN_HEADER="$WEB_ROOT/admin/views/header.php"
+ADMIN_HEADER_ALT="$WEB_ROOT/admin/header.php"
+for A_HDR in "$ADMIN_HEADER" "$ADMIN_HEADER_ALT"; do
+    if [ -f "$A_HDR" ]; then
+        LATEST_BAK=$(ls -t "${A_HDR}".bak_* 2>/dev/null | head -n 1)
+        if [ -n "$LATEST_BAK" ] && [ -f "$LATEST_BAK" ]; then
+            cp "$LATEST_BAK" "$A_HDR"
+            echo -e "${GREEN}  ✔ فایل $(basename "$A_HDR") از پشتیبان بازیابی شد.${NC}"
+        else
+            php -r '
+                $file = $argv[1];
+                $c = file_get_contents($file);
+                $c = preg_replace("/(\/\*|\/\/|<!--)\s*START ISSABEL PERSIAN CALENDAR.*?END ISSABEL PERSIAN CALENDAR\s*(\*\/|-->)?\n?/s", "", $c);
+                file_put_contents($file, $c);
+            ' "$A_HDR"
+        fi
+    fi
+done
+
+# Clean admin/config.php
+ADMIN_CONFIG="$WEB_ROOT/admin/config.php"
+if [ -f "$ADMIN_CONFIG" ]; then
+    LATEST_BAK=$(ls -t "${ADMIN_CONFIG}".bak_* 2>/dev/null | head -n 1)
+    if [ -n "$LATEST_BAK" ] && [ -f "$LATEST_BAK" ]; then
+        cp "$LATEST_BAK" "$ADMIN_CONFIG"
+        echo -e "${GREEN}  ✔ فایل admin/config.php از پشتیبان بازیابی شد.${NC}"
+    else
+        php -r '
+            $file = $argv[1];
+            $c = file_get_contents($file);
+            $c = preg_replace("/\n?\/\/ START ISSABEL PERSIAN CALENDAR HOOK.*?\/\/ END ISSABEL PERSIAN CALENDAR HOOK\n?/s", "", $c);
+            file_put_contents($file, $c);
+        ' "$ADMIN_CONFIG"
+    fi
+fi
+
 # Clean and restore misc.lib.php
 MISC_LIB="$WEB_ROOT/libs/misc.lib.php"
 if [ -f "$MISC_LIB" ]; then

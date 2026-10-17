@@ -308,6 +308,62 @@ for TPL in "${UNIQUE_THEME_FILES[@]}"; do
     fi
 done
 
+# Inject Assets into FreePBX / IssabelPBX Admin (for direct PBX navigation like /admin/config.php in Issabel 5)
+ADMIN_HEADER="$WEB_ROOT/admin/views/header.php"
+ADMIN_HEADER_ALT="$WEB_ROOT/admin/header.php"
+for A_HDR in "$ADMIN_HEADER" "$ADMIN_HEADER_ALT"; do
+    if [ -f "$A_HDR" ]; then
+        if ! grep -q "modules/persian_calendar/assets" "$A_HDR"; then
+            cp "$A_HDR" "$A_HDR$BACKUP_SUFFIX"
+            php -r '
+                $file = $argv[1];
+                $c = file_get_contents($file);
+                $tag = "\n// START ISSABEL PERSIAN CALENDAR\n" .
+                       "\$html .= '\''<link rel=\"stylesheet\" type=\"text/css\" href=\"/modules/persian_calendar/assets/css/persian-datepicker.css?v=1.1.0\" />\n'\'';\n" .
+                       "\$html .= '\''<link rel=\"stylesheet\" type=\"text/css\" href=\"/modules/persian_calendar/assets/css/issabel-persian.css?v=1.1.0\" />\n'\'';\n" .
+                       "\$html .= '\''<script type=\"text/javascript\" src=\"/modules/persian_calendar/assets/js/config.js?v=1.1.0\"></script>\n'\'';\n" .
+                       "\$html .= '\''<script type=\"text/javascript\" src=\"/modules/persian_calendar/assets/js/issabel-persian.js?v=1.1.0\"></script>\n'\'';\n" .
+                       "// END ISSABEL PERSIAN CALENDAR\n";
+                if (strpos($c, "\$html .= '\''</head>'\'';") !== false) {
+                    $c = str_replace("\$html .= '\''</head>'\'';", $tag . "\$html .= '\''</head>'\'';", $c);
+                } else if (strpos($c, "</head>") !== false) {
+                    $raw = "\n<!-- START ISSABEL PERSIAN CALENDAR -->\n" .
+                           "<link rel=\"stylesheet\" type=\"text/css\" href=\"/modules/persian_calendar/assets/css/persian-datepicker.css?v=1.1.0\" />\n" .
+                           "<link rel=\"stylesheet\" type=\"text/css\" href=\"/modules/persian_calendar/assets/css/issabel-persian.css?v=1.1.0\" />\n" .
+                           "<script type=\"text/javascript\" src=\"/modules/persian_calendar/assets/js/config.js?v=1.1.0\"></script>\n" .
+                           "<script type=\"text/javascript\" src=\"/modules/persian_calendar/assets/js/issabel-persian.js?v=1.1.0\"></script>\n" .
+                           "<!-- END ISSABEL PERSIAN CALENDAR -->\n</head>";
+                    $c = str_replace("</head>", $raw, $c);
+                }
+                file_put_contents($file, $c);
+            ' "$A_HDR"
+            echo -e "${GREEN}  ✔ قالب مدیریت استریسک $(basename "$A_HDR") برای ایزابل ۵ با موفقیت مجهز شد.${NC}"
+        fi
+    fi
+done
+
+# Hook backend into /admin/config.php for direct PBX access (Issabel 5)
+ADMIN_CONFIG="$WEB_ROOT/admin/config.php"
+if [ -f "$ADMIN_CONFIG" ]; then
+    if ! grep -q "persian_hook.php" "$ADMIN_CONFIG"; then
+        cp "$ADMIN_CONFIG" "$ADMIN_CONFIG$BACKUP_SUFFIX"
+        php -r '
+            $file = $argv[1];
+            $content = file_get_contents($file);
+            $hook = "\n// START ISSABEL PERSIAN CALENDAR HOOK\n" .
+                    "if (file_exists(dirname(__DIR__) . '\''/modules/persian_calendar/libs/persian_hook.php'\'')) {\n" .
+                    "    require_once dirname(__DIR__) . '\''/modules/persian_calendar/libs/persian_hook.php'\'';\n" .
+                    "}\n" .
+                    "// END ISSABEL PERSIAN CALENDAR HOOK\n";
+            $new = preg_replace("/^<\\?php/i", "<?php" . $hook, $content, 1);
+            if ($new && $new !== $content) {
+                file_put_contents($file, $new);
+            }
+        ' "$ADMIN_CONFIG"
+        echo -e "${GREEN}  ✔ هوک بک‌اند در بخش مدیریت admin/config.php نیز متصل شد.${NC}"
+    fi
+fi
+
 # Ensure misc.lib.php remains in its pristine, original factory state (Zero system modifications!)
 MISC_LIB="$WEB_ROOT/libs/misc.lib.php"
 if [ -f "$MISC_LIB" ]; then
@@ -342,7 +398,7 @@ if [ -f "$MISC_LIB" ]; then
     echo -e "${GREEN}  ✔ فایل سیستمی misc.lib.php بدون تغییر و در حالت ۱۰۰٪ اورجینال و استاندارد ایزابل حفظ شد.${NC}"
 fi
 
-# 6. Patch Time Groups and Time Conditions for Persian Calendar Support
+# 6. Patch Time Groups and Time Conditions for Persian Calendar Support (Issabel 4 & 5)
 echo -e "${BLUE}[6/7] در حال فعال‌سازی پشتیبانی تقویم شمسی در تایم‌گروپ (Time Groups) ...${NC}"
 TC_FUNCS="$WEB_ROOT/admin/modules/timeconditions/functions.inc.php"
 TC_PAGE="$WEB_ROOT/admin/modules/timeconditions/page.timegroups.php"
@@ -363,49 +419,44 @@ if [ -f "$TC_FUNCS" ]; then
                     "// END ISSABEL PERSIAN TIMEGROUPS HOOK\n";
             $c = preg_replace("/<\\?php/i", "<?php" . $hook, $c, 1);
 
-            // 2. Expand Shamsi rules in GotoIfTime
-            $searchGoto = "\$ext->add(\$context, \$time_id, " . "\x27\x27, new ext_gotoiftime(" . "\$time[1]," . "\x27truestate\x27));";
+            // 2. Expand Shamsi rules in GotoIfTime (Issabel 4 & 5)
             $replaceGoto = "\$expanded = function_exists(\"issabel_expand_shamsi_time_rule\") ? issabel_expand_shamsi_time_rule(\$time[1]) : array(\$time[1]);\n" .
                            "                        foreach (\$expanded as \$expTime) {\n" .
-                           "                            \$ext->add(\$context, \$time_id, " . "\x27\x27, new ext_gotoiftime(" . "\$expTime," . "\x27truestate\x27));\n" .
+                           "                            \$ext->add(\$context, \$time_id, \x27\x27, new ext_gotoiftime(\$expTime, \x27truestate\x27));\n" .
                            "                        }";
-            if (strpos($c, $searchGoto) !== false) {
-                $c = str_replace($searchGoto, $replaceGoto, $c);
-            }
+            $c = preg_replace(
+                "/\x24ext->add\(\x24context,\s*\x24time_id,\s*[\x27\x22]{2},\s*new\s+ext_gotoiftime\(\x24time\[1\],\s*[\x27\x22]truestate[\x27\x22]\)\);/",
+                $replaceGoto,
+                $c
+            );
 
-            // 3. wday_start
-            $markerWdayStart = "<select name=\"\x27.\$name.\x27[wday_start]\">\x27;";
-            $pos1 = strpos($c, $markerWdayStart);
-            if ($pos1 !== false) {
-                $pos2 = strpos($c, "\$html = \$html.\x27</td>\x27;", $pos1);
-                if ($pos2 !== false) {
-                    $replacement = "<select name=\"\x27.\$name.\x27[wday_start]\">\x27;\n" .
-                                   "    if (function_exists(\"issabel_draw_wday_options\")) {\n" .
-                                   "        \$html = \$html . issabel_draw_wday_options(\$wday_start);\n" .
-                                   "    }\n" .
-                                   "    \$html = \$html.\x27</select>\x27;\n    ";
-                    $c = substr_replace($c, $replacement, $pos1, $pos2 - $pos1);
-                }
-            }
+            // 3. wday_start (Issabel 4 & 5 compatible)
+            $p1 = "/(<select[^>]*?\\[wday_start\\][^>]*>\\\x27\\;).*?(\\x24html\\s*=\\s*\\x24html\\s*\\.\\s*\\\x27<\\/td>\\\x27\\;)/s";
+            $r1 = "$1\n" .
+                  "    if (function_exists(\"issabel_draw_wday_options\")) { \$html = \$html . issabel_draw_wday_options(\$wday_start); }\n    " .
+                  "\$html = \$html . \x27</select></td>\x27;";
+            $c = preg_replace($p1, $r1, $c);
 
-            // 4. wday_finish
-            $markerWdayFin = "<select name=\"\x27.\$name.\x27[wday_finish]\">\x27;";
-            $pos3 = strpos($c, $markerWdayFin);
-            if ($pos3 !== false) {
-                $pos4 = strpos($c, "\$html = \$html.\x27</td>\x27;", $pos3);
-                if ($pos4 !== false) {
-                    $replacement2 = "<select name=\"\x27.\$name.\x27[wday_finish]\">\x27;\n" .
-                                    "    if (function_exists(\"issabel_draw_wday_options\")) {\n" .
-                                    "        \$html = \$html . issabel_draw_wday_options(\$wday_finish);\n" .
-                                    "    }\n" .
-                                    "    \$html = \$html.\x27</select>\x27;\n    ";
-                    $c = substr_replace($c, $replacement2, $pos3, $pos4 - $pos3);
-                }
-            }
+            // 4. wday_finish (Issabel 4 & 5 compatible)
+            $p2 = "/(<select[^>]*?\\[wday_finish\\][^>]*>\\\x27\\;).*?(\\x24html\\s*=\\s*\\x24html\\s*\\.\\s*\\\x27<\\/td>\\\x27\\;)/s";
+            $r2 = "$1\n" .
+                  "    if (function_exists(\"issabel_draw_wday_options\")) { \$html = \$html . issabel_draw_wday_options(\$wday_finish); }\n    " .
+                  "\$html = \$html . \x27</select></td>\x27;";
+            $c = preg_replace($p2, $r2, $c);
 
-            // 5. month_start and month_finish
-            $c = str_replace("draw_select_month(\$month_start)", "issabel_draw_month_options(\$month_start)", $c);
-            $c = str_replace("draw_select_month(\$month_finish)", "issabel_draw_month_options(\$month_finish)", $c);
+            // 5. month_start (Issabel 4 & 5 compatible)
+            $p3 = "/(<select[^>]*?\\[month_start\\][^>]*>\\\x27\\;).*?(\\x24html\\s*=\\s*\\x24html\\s*\\.\\s*\\\x27<\\/td>\\\x27\\;)/s";
+            $r3 = "$1\n" .
+                  "    if (function_exists(\"issabel_draw_month_options\")) { \$html = \$html . issabel_draw_month_options(\$month_start); }\n    " .
+                  "\$html = \$html . \x27</select></td>\x27;";
+            $c = preg_replace($p3, $r3, $c);
+
+            // 6. month_finish (Issabel 4 & 5 compatible)
+            $p4 = "/(<select[^>]*?\\[month_finish\\][^>]*>\\\x27\\;).*?(\\x24html\\s*=\\s*\\x24html\\s*\\.\\s*\\\x27<\\/td>\\\x27\\;)/s";
+            $r4 = "$1\n" .
+                  "    if (function_exists(\"issabel_draw_month_options\")) { \$html = \$html . issabel_draw_month_options(\$month_finish); }\n    " .
+                  "\$html = \$html . \x27</select></td>\x27;";
+            $c = preg_replace($p4, $r4, $c);
 
             file_put_contents($f, $c);
         ' "$TC_FUNCS" "$WEB_ROOT"
@@ -419,16 +470,15 @@ if [ -f "$TC_PAGE" ]; then
         php -r '
             $f = $argv[1];
             $c = file_get_contents($f);
-            $new = "<div class=\"rnav\" style=\"margin-left: 20px; font-weight: bold;\">\n" .
-                   "    <?php echo _(\"Server time\"); ?>: <span id=\"idTime\">00:00:00</span>\n" .
-                   "    <?php if (function_exists(\"issabel_jdate\")) { ?>\n" .
-                   "        <span class=\"issabel-persian-shamsi-time\" style=\"margin-right: 15px; color: #1a73e8; background: #e8f0fe; padding: 2px 8px; border-radius: 4px; font-size: 12px;\">\n" .
-                   "            📅 <?php echo issabel_jdate(\"l j F Y\"); ?>\n" .
-                   "        </span>\n" .
-                   "    <?php } ?>\n" .
-                   "</div>";
-            $c = preg_replace("/<div class=\"rnav\"[^>]*>\\s*<\\?php echo _\\(\"Server time\"\\)\\s*\\?>:\\s*<span id=\"idTime\">00:00:00<\\/span>\\s*<\\/div>/s", $new, $c);
-            file_put_contents($f, $c);
+            if (strpos($c, "id=\"idTime\"") !== false) {
+                $shamsiBadge = "<span id=\"idTime\">00:00:00</span>" .
+                    "<?php if (function_exists(\"issabel_jdate\")) { ?>" .
+                    " <span class=\"issabel-persian-shamsi-time\" style=\"margin-left: 10px; margin-right: 10px; color: #1a73e8; background: #e8f0fe; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;\">" .
+                    "📅 <?php echo issabel_jdate(\"l j F Y\"); ?>" .
+                    "</span><?php } ?>";
+                $c = preg_replace("/<span id=\"idTime\">00:00:00<\\/span>/", $shamsiBadge, $c, 1);
+                file_put_contents($f, $c);
+            }
         ' "$TC_PAGE"
         echo -e "${GREEN}  ✔ نمایش زنده تاریخ شمسی در سربرگ تایم‌گروپ فعال شد.${NC}"
     fi
