@@ -10,36 +10,61 @@ $action  = isset($argv[2]) ? $argv[2] : 'install';
 $tcFuncs = "$webRoot/admin/modules/timeconditions/functions.inc.php";
 $tcPage  = "$webRoot/admin/modules/timeconditions/page.timegroups.php";
 
-if ($action === 'uninstall') {
-    // Restore functions.inc.php
-    if (file_exists($tcFuncs)) {
-        $c = file_get_contents($tcFuncs);
-        if (strpos($c, 'ISSABEL PERSIAN TIMEGROUPS HOOK') !== false) {
-            $baks = glob($tcFuncs . '.bak_*');
-            if (!empty($baks)) {
-                rsort($baks);
-                copy($baks[0], $tcFuncs);
-                echo "Restored functions.inc.php from backup.\n";
+$pristineFuncs = __DIR__ . '/../pristine_originals/tc_functions.inc.php';
+$pristinePage  = __DIR__ . '/../pristine_originals/tc_page.timegroups.php';
+
+$phpBin = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
+
+function is_valid_php_file($path, $minSize = 1000) {
+    global $phpBin;
+    if (!file_exists($path) || filesize($path) < $minSize) {
+        return false;
+    }
+    $lint = shell_exec(escapeshellcmd($phpBin) . ' -l ' . escapeshellarg($path) . ' 2>&1');
+    return (strpos($lint, 'No syntax errors') !== false);
+}
+
+function restore_clean_backup_or_pristine($targetFile, $pristineFile, $minSize = 1000) {
+    $baks = glob($targetFile . '.bak_*');
+    if (!empty($baks)) {
+        // Sort oldest first
+        sort($baks);
+        foreach ($baks as $b) {
+            if (is_valid_php_file($b, $minSize)) {
+                copy($b, $targetFile);
+                echo "Restored " . basename($targetFile) . " from clean backup: " . basename($b) . "\n";
+                return true;
             }
         }
     }
-    // Restore page.timegroups.php
+
+    if (file_exists($pristineFile) && is_valid_php_file($pristineFile, $minSize)) {
+        copy($pristineFile, $targetFile);
+        echo "Restored " . basename($targetFile) . " from pristine repository copy.\n";
+        return true;
+    }
+
+    return false;
+}
+
+if ($action === 'uninstall') {
+    if (file_exists($tcFuncs)) {
+        restore_clean_backup_or_pristine($tcFuncs, $pristineFuncs, 5000);
+    }
     if (file_exists($tcPage)) {
-        $c = file_get_contents($tcPage);
-        if (strpos($c, 'issabel-persian-shamsi-time') !== false) {
-            $baks = glob($tcPage . '.bak_*');
-            if (!empty($baks)) {
-                rsort($baks);
-                copy($baks[0], $tcPage);
-                echo "Restored page.timegroups.php from backup.\n";
-            }
-        }
+        restore_clean_backup_or_pristine($tcPage, $pristinePage, 500);
     }
     exit(0);
 }
 
 // INSTALL ACTION
+// 1. Ensure functions.inc.php is valid before patching
 if (file_exists($tcFuncs)) {
+    if (!is_valid_php_file($tcFuncs, 5000)) {
+        echo "Detected corrupted functions.inc.php. Recovering...\n";
+        restore_clean_backup_or_pristine($tcFuncs, $pristineFuncs, 5000);
+    }
+
     $c = file_get_contents($tcFuncs);
     if (strpos($c, 'ISSABEL PERSIAN TIMEGROUPS HOOK') === false) {
         $bak = $tcFuncs . '.bak_' . date('Ymd_His');
@@ -99,23 +124,27 @@ if (file_exists($tcFuncs)) {
         patch_select_block($c, 'month_finish', 'issabel_draw_month_options($month_finish)');
 
         // Validate syntax before writing
-        $phpBin = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
         $tmp = tempnam(sys_get_temp_dir(), 'tg_check_');
         file_put_contents($tmp, $c);
         $lint = shell_exec(escapeshellcmd($phpBin) . ' -l ' . escapeshellarg($tmp) . ' 2>&1');
         @unlink($tmp);
 
-        if (strpos($lint, 'No syntax errors') !== false) {
+        if (strpos($lint, 'No syntax errors') !== false && strlen($c) > 5000) {
             file_put_contents($tcFuncs, $c);
             echo "functions.inc.php patched successfully.\n";
         } else {
-            echo "Lint error, keeping backup: $lint\n";
+            echo "Lint error or invalid length, keeping backup: $lint\n";
         }
     }
 }
 
-// Patch page.timegroups.php for Shamsi live server date badge
+// 2. Ensure page.timegroups.php is valid before patching
 if (file_exists($tcPage)) {
+    if (!is_valid_php_file($tcPage, 500)) {
+        echo "Detected corrupted page.timegroups.php. Recovering...\n";
+        restore_clean_backup_or_pristine($tcPage, $pristinePage, 500);
+    }
+
     $c = file_get_contents($tcPage);
     if (strpos($c, 'issabel-persian-shamsi-time') === false && strpos($c, 'id="idTime"') !== false) {
         $bak = $tcPage . '.bak_' . date('Ymd_His');
@@ -128,13 +157,12 @@ if (file_exists($tcPage)) {
             '</span><?php } ?>';
         $c = str_replace('<span id="idTime">00:00:00</span>', $shamsiBadge, $c);
 
-        $phpBin = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
         $tmp = tempnam(sys_get_temp_dir(), 'tg_page_check_');
         file_put_contents($tmp, $c);
         $lint = shell_exec(escapeshellcmd($phpBin) . ' -l ' . escapeshellarg($tmp) . ' 2>&1');
         @unlink($tmp);
 
-        if (strpos($lint, 'No syntax errors') !== false) {
+        if (strpos($lint, 'No syntax errors') !== false && strlen($c) > 500) {
             file_put_contents($tcPage, $c);
             echo "page.timegroups.php patched successfully.\n";
         }

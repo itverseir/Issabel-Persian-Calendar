@@ -155,7 +155,7 @@ if (!function_exists('issabel_jdate')) {
             'F' => $month_names[$jm],
             'M' => $month_names[$jm],
             'l' => $day_names[$jw],
-            'D' => mb_substr($day_names[$jw], 0, 1, 'UTF-8'),
+            'D' => function_exists('mb_substr') ? mb_substr($day_names[$jw], 0, 1, 'UTF-8') : $day_names[$jw],
             'H' => $h,
             'h' => sprintf('%02d', ($h % 12 == 0 ? 12 : $h % 12)),
             'i' => $i,

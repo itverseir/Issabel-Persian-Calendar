@@ -92,60 +92,43 @@ for TPL in "${UNIQUE_THEME_FILES[@]}"; do
 done
 
 # Clean Admin Templates and Headers (Issabel 5)
-ADMIN_HEADER="$WEB_ROOT/admin/views/header.php"
-ADMIN_HEADER_ALT="$WEB_ROOT/admin/header.php"
-for A_HDR in "$ADMIN_HEADER" "$ADMIN_HEADER_ALT"; do
-    if [ -f "$A_HDR" ]; then
-        LATEST_BAK=$(ls -t "${A_HDR}".bak_* 2>/dev/null | head -n 1)
-        if [ -n "$LATEST_BAK" ] && [ -f "$LATEST_BAK" ]; then
-            cp "$LATEST_BAK" "$A_HDR"
-            echo -e "${GREEN}  ✔ فایل $(basename "$A_HDR") از پشتیبان بازیابی شد.${NC}"
-        else
-            php -r '
-                $file = $argv[1];
-                $c = file_get_contents($file);
-                $c = preg_replace("/(\/\*|\/\/|<!--)\s*START ISSABEL PERSIAN CALENDAR.*?END ISSABEL PERSIAN CALENDAR\s*(\*\/|-->)?\n?/s", "", $c);
-                file_put_contents($file, $c);
-            ' "$A_HDR"
-        fi
-    fi
-done
+PRISTINE_DIR="$SCRIPT_DIR/modules/persian_calendar/pristine_originals"
 
-# Clean admin/config.php
-ADMIN_CONFIG="$WEB_ROOT/admin/config.php"
-if [ -f "$ADMIN_CONFIG" ]; then
-    LATEST_BAK=$(ls -t "${ADMIN_CONFIG}".bak_* 2>/dev/null | head -n 1)
-    if [ -n "$LATEST_BAK" ] && [ -f "$LATEST_BAK" ]; then
-        cp "$LATEST_BAK" "$ADMIN_CONFIG"
-        echo -e "${GREEN}  ✔ فایل admin/config.php از پشتیبان بازیابی شد.${NC}"
-    else
-        php -r '
-            $file = $argv[1];
-            $c = file_get_contents($file);
-            $c = preg_replace("/\n?\/\/ START ISSABEL PERSIAN CALENDAR HOOK.*?\/\/ END ISSABEL PERSIAN CALENDAR HOOK\n?/s", "", $c);
-            file_put_contents($file, $c);
-        ' "$ADMIN_CONFIG"
+restore_uninstall_file() {
+    local target="$1"
+    local pristine_name="$2"
+    local min_size="$3"
+    local pristine_path="$PRISTINE_DIR/$pristine_name"
+
+    [ ! -f "$target" ] && return
+
+    local restored=0
+    for bak in $(ls -tr "${target}".bak_* 2>/dev/null); do
+        local bsize=$(stat -c%s "$bak" 2>/dev/null || echo 0)
+        if [ "$bsize" -ge "$min_size" ] && php -l "$bak" >/dev/null 2>&1; then
+            if ! grep -q "START ISSABEL PERSIAN CALENDAR" "$bak" 2>/dev/null; then
+                cp -f "$bak" "$target"
+                echo -e "${GREEN}  ✔ فایل $(basename "$target") از نسخه پشتیبان سالم بازیابی شد.${NC}"
+                restored=1
+                break
+            fi
+        fi
+    done
+
+    if [ "$restored" -eq 0 ] && [ -f "$pristine_path" ]; then
+        cp -f "$pristine_path" "$target"
+        echo -e "${GREEN}  ✔ فایل $(basename "$target") از نسخه اورجینال بازگردانده شد.${NC}"
     fi
-fi
+}
+
+restore_uninstall_file "$WEB_ROOT/admin/views/header.php" "admin_views_header.php" 1000
+restore_uninstall_file "$WEB_ROOT/admin/header.php" "admin_views_header.php" 1000
+restore_uninstall_file "$WEB_ROOT/admin/config.php" "admin_config.php" 5000
 
 # Clean and restore misc.lib.php
 MISC_LIB="$WEB_ROOT/libs/misc.lib.php"
 if [ -f "$MISC_LIB" ]; then
-    LATEST_BAK=$(ls -t "${MISC_LIB}".bak_* 2>/dev/null | head -n 1)
-    if [ -n "$LATEST_BAK" ] && [ -f "$LATEST_BAK" ]; then
-        cp "$LATEST_BAK" "$MISC_LIB"
-        echo -e "${GREEN}  ✔ فایل misc.lib.php از نسخه پشتیبان اصلی بازیابی شد.${NC}"
-    else
-        # Restore clean original translateDate if backup not found
-        php -r '
-            $file = $argv[1];
-            $c = file_get_contents($file);
-            $cleanTranslate = "function translateDate(\$dateOrig)\n{\n    if(preg_match(\"/([[:digit:]]{1,2})[[:space:]]+([[:alnum:]]{3})[[:space:]]+([[:digit:]]{4})/\", \$dateOrig, \$arrReg)) {\n        if(\$arrReg[2]==\"Jan\")      \$numMonth = \"01\";\n        else if(\$arrReg[2]==\"Feb\") \$numMonth = \"02\";\n        else if(\$arrReg[2]==\"Mar\") \$numMonth = \"03\";\n        else if(\$arrReg[2]==\"Apr\") \$numMonth = \"04\";\n        else if(\$arrReg[2]==\"May\") \$numMonth = \"05\";\n        else if(\$arrReg[2]==\"Jun\") \$numMonth = \"06\";\n        else if(\$arrReg[2]==\"Jul\") \$numMonth = \"07\";\n        else if(\$arrReg[2]==\"Aug\") \$numMonth = \"08\";\n        else if(\$arrReg[2]==\"Sep\") \$numMonth = \"09\";\n        else if(\$arrReg[2]==\"Oct\") \$numMonth = \"10\";\n        else if(\$arrReg[2]==\"Nov\") \$numMonth = \"11\";\n        else if(\$arrReg[2]==\"Dec\") \$numMonth = \"12\";\n        return \$arrReg[3] . \"-\" . \$numMonth . \"-\" . \$arrReg[1];\n    } else {\n        return false;\n    }\n}";
-            $c = preg_replace("/function translateDate\s*\([^)]*\)\s*\{.*?\n\}(?=\s*\n\s*function|\s*$)/s", $cleanTranslate, $c);
-            file_put_contents($file, $c);
-        ' "$MISC_LIB"
-        echo -e "${GREEN}  ✔ تابع translateDate در misc.lib.php به حالت استاندارد و اولیه ایزابل بازگردانده شد.${NC}"
-    fi
+    restore_uninstall_file "$MISC_LIB" "framework_misc.lib.php" 5000
 fi
 
 # Clean Time Groups and Time Conditions
@@ -157,16 +140,12 @@ TC_FUNCS="$WEB_ROOT/admin/modules/timeconditions/functions.inc.php"
 TC_PAGE="$WEB_ROOT/admin/modules/timeconditions/page.timegroups.php"
 
 if [ -f "$TC_FUNCS" ]; then
-    LATEST_BAK=$(ls -t "${TC_FUNCS}".bak_* 2>/dev/null | head -n 1)
-    if [ -n "$LATEST_BAK" ] && [ -f "$LATEST_BAK" ]; then
-        cp "$LATEST_BAK" "$TC_FUNCS"
-        echo -e "${GREEN}  ✔ فایل functions.inc.php از پشتیبان بازیابی شد.${NC}"
-    fi
+    restore_uninstall_file "$TC_FUNCS" "tc_functions.inc.php" 10000
 fi
 
 if [ -f "$TC_PAGE" ]; then
-    LATEST_BAK=$(ls -t "${TC_PAGE}".bak_* 2>/dev/null | head -n 1)
-    if [ -n "$LATEST_BAK" ] && [ -f "$LATEST_BAK" ]; then
+    restore_uninstall_file "$TC_PAGE" "tc_page.timegroups.php" 500
+fi
         cp "$LATEST_BAK" "$TC_PAGE"
         echo -e "${GREEN}  ✔ فایل page.timegroups.php از پشتیبان بازیابی شد.${NC}"
     fi

@@ -309,56 +309,54 @@ for TPL in "${UNIQUE_THEME_FILES[@]}"; do
 done
 
 # Restore core admin files if they were modified by earlier versions (Zero system modifications!)
-for CORE_FILE in "$WEB_ROOT/admin/views/header.php" "$WEB_ROOT/admin/header.php" "$WEB_ROOT/admin/config.php"; do
-    if [ -f "$CORE_FILE" ]; then
-        LATEST_BAK=$(ls -t "${CORE_FILE}".bak_* 2>/dev/null | head -n 1)
-        if [ -n "$LATEST_BAK" ] && [ -f "$LATEST_BAK" ]; then
-            cp -f "$LATEST_BAK" "$CORE_FILE"
-            echo -e "${GREEN}  ✔ فایل $(basename "$CORE_FILE") به حالت اورجینال بازگردانده شد.${NC}"
-        else
-            php -r '
-                $file = $argv[1];
-                $c = file_get_contents($file);
-                $clean = preg_replace("/(\/\*|\/\/|<!--)\s*START ISSABEL PERSIAN CALENDAR.*?END ISSABEL PERSIAN CALENDAR\s*(\*\/|-->)?\n?/s", "", $c);
-                if ($clean !== $c) {
-                    file_put_contents($file, $clean);
-                }
-            ' "$CORE_FILE"
+PRISTINE_DIR="$SCRIPT_DIR/modules/persian_calendar/pristine_originals"
+
+restore_core_file() {
+    local target="$1"
+    local pristine_name="$2"
+    local min_size="$3"
+    local pristine_path="$PRISTINE_DIR/$pristine_name"
+
+    [ ! -f "$target" ] && return
+
+    local current_size=$(stat -c%s "$target" 2>/dev/null || echo 0)
+    local needs_restore=0
+
+    if [ "$current_size" -lt "$min_size" ] || ! php -l "$target" >/dev/null 2>&1; then
+        needs_restore=1
+    elif grep -q "START ISSABEL PERSIAN CALENDAR" "$target" 2>/dev/null; then
+        needs_restore=1
+    fi
+
+    if [ "$needs_restore" -eq 1 ]; then
+        local restored=0
+        for bak in $(ls -tr "${target}".bak_* 2>/dev/null); do
+            local bsize=$(stat -c%s "$bak" 2>/dev/null || echo 0)
+            if [ "$bsize" -ge "$min_size" ] && php -l "$bak" >/dev/null 2>&1; then
+                if ! grep -q "START ISSABEL PERSIAN CALENDAR" "$bak" 2>/dev/null; then
+                    cp -f "$bak" "$target"
+                    echo -e "${GREEN}  ✔ فایل $(basename "$target") از نسخه پشتیبان سالم بازیابی شد.${NC}"
+                    restored=1
+                    break
+                fi
+            fi
+        done
+
+        if [ "$restored" -eq 0 ] && [ -f "$pristine_path" ]; then
+            cp -f "$pristine_path" "$target"
+            echo -e "${GREEN}  ✔ فایل $(basename "$target") با نسخه اورجینال جایگزین شد.${NC}"
         fi
     fi
-done
+}
+
+restore_core_file "$WEB_ROOT/admin/views/header.php" "admin_views_header.php" 1000
+restore_core_file "$WEB_ROOT/admin/header.php" "admin_views_header.php" 1000
+restore_core_file "$WEB_ROOT/admin/config.php" "admin_config.php" 5000
 
 # Ensure misc.lib.php remains in its pristine, original factory state (Zero system modifications!)
 MISC_LIB="$WEB_ROOT/libs/misc.lib.php"
 if [ -f "$MISC_LIB" ]; then
-    php -r '
-        $file = $argv[1];
-        $c = file_get_contents($file);
-        if (strpos($c, "Persian") !== false || strpos($c, "PERSIAN") !== false) {
-            $origTranslate = "function translateDate(\$dateOrig)\n" .
-                "{\n" .
-                "    if(preg_match(\"/([[:digit:]]{1,2})[[:space:]]+([[:alnum:]]{3})[[:space:]]+([[:digit:]]{4})/\", \$dateOrig, \$arrReg)) {\n" .
-                "        if(\$arrReg[2]==\"Jan\")      \$numMonth = \"01\";\n" .
-                "        else if(\$arrReg[2]==\"Feb\") \$numMonth = \"02\";\n" .
-                "        else if(\$arrReg[2]==\"Mar\") \$numMonth = \"03\";\n" .
-                "        else if(\$arrReg[2]==\"Apr\") \$numMonth = \"04\";\n" .
-                "        else if(\$arrReg[2]==\"May\") \$numMonth = \"05\";\n" .
-                "        else if(\$arrReg[2]==\"Jun\") \$numMonth = \"06\";\n" .
-                "        else if(\$arrReg[2]==\"Jul\") \$numMonth = \"07\";\n" .
-                "        else if(\$arrReg[2]==\"Aug\") \$numMonth = \"08\";\n" .
-                "        else if(\$arrReg[2]==\"Sep\") \$numMonth = \"09\";\n" .
-                "        else if(\$arrReg[2]==\"Oct\") \$numMonth = \"10\";\n" .
-                "        else if(\$arrReg[2]==\"Nov\") \$numMonth = \"11\";\n" .
-                "        else if(\$arrReg[2]==\"Dec\") \$numMonth = \"12\";\n" .
-                "        return \$arrReg[3] . \"-\" . \$numMonth . \"-\" . \$arrReg[1];\n" .
-                "    } else {\n" .
-                "        return false;\n" .
-                "    }\n" .
-                "}";
-            $c = preg_replace("/function translateDate\s*\([^)]*\)\s*\{.*?\n\}(?=\s*\n\s*function|\s*$)/s", $origTranslate, $c);
-            file_put_contents($file, $c);
-        }
-    ' "$MISC_LIB"
+    restore_core_file "$MISC_LIB" "framework_misc.lib.php" 5000
     echo -e "${GREEN}  ✔ فایل سیستمی misc.lib.php بدون تغییر و در حالت ۱۰۰٪ اورجینال و استاندارد ایزابل حفظ شد.${NC}"
 fi
 
