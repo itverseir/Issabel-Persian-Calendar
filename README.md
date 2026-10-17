@@ -51,8 +51,9 @@
 
 ```bash
 cd /tmp
-# یا هر مسیری که فایل‌های ماژول را در آن قرار داده‌اید
-cd PersianIssabel
+wget https://github.com/itverseir/Issabel4-Persian-Calendar/archive/refs/heads/main.zip -O persian-calendar.zip
+unzip persian-calendar.zip
+cd Issabel-Persian-Calendar-main
 chmod +x install.sh uninstall.sh
 ./install.sh
 ```
@@ -130,9 +131,12 @@ A comprehensive, production-grade Persian (Solar Hijri / Jalali) localization mo
 The installer automatically detects whether you are running **Issabel 4 (CentOS 7)** or **Issabel 5 (Rocky Linux / AlmaLinux 8)**:
 
 ```bash
-cd /path/to/PersianIssabel
+cd /tmp
+wget https://github.com/itverseir/Issabel4-Persian-Calendar/archive/refs/heads/main.zip -O persian-calendar.zip
+unzip persian-calendar.zip
+cd Issabel-Persian-Calendar-main
 chmod +x install.sh uninstall.sh
-sudo ./install.sh
+./install.sh
 ```
 
 #### Optional CLI Flags:
