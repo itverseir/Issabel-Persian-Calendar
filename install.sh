@@ -316,34 +316,42 @@ if [ -f "$MISC_LIB" ]; then
         $file = $argv[1];
         $c = file_get_contents($file);
 
-        // 1. Clean any previous buggy or old Persian patch
-        $c = preg_replace("/\n[ \t]*\/\/[ \t]*translateDate - Persian support.*?\n[ \t]*\}\n[ \t]*\}/s", "", $c);
-        $c = preg_replace("/\n[ \t]*\/\/[ \t]*START ISSABEL PERSIAN TRANSLATE DATE.*?\/\/[ \t]*END ISSABEL PERSIAN TRANSLATE DATE\n?/s", "", $c);
+        $robustTranslate = "function translateDate(\$dateOrig)\n" .
+            "{\n" .
+            "    // START ISSABEL PERSIAN TRANSLATE DATE\n" .
+            "    if (is_string(\$dateOrig)) {\n" .
+            "        \$trimmed = trim(\$dateOrig);\n" .
+            "        if (preg_match(\x27/^(1[34]\d{2})[-\\/](0?[1-9]|1[0-2])[-\\/](0?[1-9]|[12]\d|3[01])$/\x27, \$trimmed, \$mJalali)) {\n" .
+            "            if (function_exists(\x27issabel_jalali_to_gregorian\x27)) {\n" .
+            "                list(\$gy, \$gm, \$gd) = issabel_jalali_to_gregorian((int)\$mJalali[1], (int)\$mJalali[2], (int)\$mJalali[3]);\n" .
+            "                return sprintf(\x27%04d-%02d-%02d\x27, \$gy, \$gm, \$gd);\n" .
+            "            }\n" .
+            "        }\n" .
+            "        if (preg_match(\x27/^\\d{4}-\\d{2}-\\d{2}$/\x27, \$trimmed)) {\n" .
+            "            return \$trimmed;\n" .
+            "        }\n" .
+            "    }\n" .
+            "    if(preg_match(\"/([[:digit:]]{1,2})[[:space:]]+([[:alnum:]]{3})[[:space:]]+([[:digit:]]{4})/\", \$dateOrig, \$arrReg)) {\n" .
+            "        if(\$arrReg[2]==\"Jan\")      \$numMonth = \"01\";\n" .
+            "        else if(\$arrReg[2]==\"Feb\") \$numMonth = \"02\";\n" .
+            "        else if(\$arrReg[2]==\"Mar\") \$numMonth = \"03\";\n" .
+            "        else if(\$arrReg[2]==\"Apr\") \$numMonth = \"04\";\n" .
+            "        else if(\$arrReg[2]==\"May\") \$numMonth = \"05\";\n" .
+            "        else if(\$arrReg[2]==\"Jun\") \$numMonth = \"06\";\n" .
+            "        else if(\$arrReg[2]==\"Jul\") \$numMonth = \"07\";\n" .
+            "        else if(\$arrReg[2]==\"Aug\") \$numMonth = \"08\";\n" .
+            "        else if(\$arrReg[2]==\"Sep\") \$numMonth = \"09\";\n" .
+            "        else if(\$arrReg[2]==\"Oct\") \$numMonth = \"10\";\n" .
+            "        else if(\$arrReg[2]==\"Nov\") \$numMonth = \"11\";\n" .
+            "        else if(\$arrReg[2]==\"Dec\") \$numMonth = \"12\";\n" .
+            "        return \$arrReg[3] . \"-\" . \$numMonth . \"-\" . \$arrReg[1];\n" .
+            "    } else {\n" .
+            "        return false;\n" .
+            "    }\n" .
+            "    // END ISSABEL PERSIAN TRANSLATE DATE\n" .
+            "}";
 
-        // 2. Inject clean, correct translateDate support (ALWAYS returns Gregorian YYYY-MM-DD for Asterisk CDR queries!)
-        $search = "function translateDate(" . "\$dateOrig)";
-        $pos = strpos($c, $search);
-        if ($pos !== false) {
-            $bracePos = strpos($c, "{", $pos);
-            if ($bracePos !== false) {
-                $injection = "\n        // START ISSABEL PERSIAN TRANSLATE DATE\n" .
-                             "        // Convert Shamsi date (e.g. 1403/08/15) to Gregorian ISO (YYYY-MM-DD) for database queries\n" .
-                             "        if (is_string(\$dateOrig)) {\n" .
-                             "            \$trimmed = trim(\$dateOrig);\n" .
-                             "            if (preg_match(\x27/^(1[34]\d{2})[-\/](0?[1-9]|1[0-2])[-\/](0?[1-9]|[12]\d|3[01])$/\x27, \$trimmed, \$mJalali)) {\n" .
-                             "                if (function_exists(\x27issabel_jalali_to_gregorian\x27)) {\n" .
-                             "                    list(\$gy, \$gm, \$gd) = issabel_jalali_to_gregorian((int)\$mJalali[1], (int)\$mJalali[2], (int)\$mJalali[3]);\n" .
-                             "                    return sprintf(\x27%04d-%02d-%02d\x27, \$gy, \$gm, \$gd);\n" .
-                             "                }\n" .
-                             "            }\n" .
-                             "            if (preg_match(\x27/^\d{4}-\d{2}-\d{2}$/\x27, \$trimmed)) {\n" .
-                             "                return \$trimmed;\n" .
-                             "            }\n" .
-                             "        }\n" .
-                             "        // END ISSABEL PERSIAN TRANSLATE DATE\n";
-                $c = substr_replace($c, $injection, $bracePos + 1, 0);
-            }
-        }
+        $c = preg_replace("/function translateDate\s*\([^)]*\)\s*\{.*?\n\}(?=\s*\n\s*function|\s*$)/s", $robustTranslate, $c);
         file_put_contents($file, $c);
     ' "$MISC_LIB"
     echo -e "${GREEN}  ✔ تابع translateDate برای سازگاری کامل گزارشات CDR و Summary به‌روزرسانی شد.${NC}"

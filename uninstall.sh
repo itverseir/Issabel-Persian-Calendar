@@ -91,16 +91,24 @@ for TPL in "${UNIQUE_THEME_FILES[@]}"; do
     fi
 done
 
-# Clean misc.lib.php
+# Clean and restore misc.lib.php
 MISC_LIB="$WEB_ROOT/libs/misc.lib.php"
 if [ -f "$MISC_LIB" ]; then
-    php -r '
-        $file = $argv[1];
-        $c = file_get_contents($file);
-        $c = preg_replace("/\n[ \t]*\/\/[ \t]*translateDate - Persian support.*?\n[ \t]*\}\n[ \t]*\}/s", "", $c);
-        $c = preg_replace("/\n[ \t]*\/\/[ \t]*START ISSABEL PERSIAN TRANSLATE DATE.*?\/\/[ \t]*END ISSABEL PERSIAN TRANSLATE DATE\n?/s", "", $c);
-        file_put_contents($file, $c);
-    ' "$MISC_LIB"
+    LATEST_BAK=$(ls -t "${MISC_LIB}".bak_* 2>/dev/null | head -n 1)
+    if [ -n "$LATEST_BAK" ] && [ -f "$LATEST_BAK" ]; then
+        cp "$LATEST_BAK" "$MISC_LIB"
+        echo -e "${GREEN}  ✔ فایل misc.lib.php از نسخه پشتیبان اصلی بازیابی شد.${NC}"
+    else
+        # Restore clean original translateDate if backup not found
+        php -r '
+            $file = $argv[1];
+            $c = file_get_contents($file);
+            $cleanTranslate = "function translateDate(\$dateOrig)\n{\n    if(preg_match(\"/([[:digit:]]{1,2})[[:space:]]+([[:alnum:]]{3})[[:space:]]+([[:digit:]]{4})/\", \$dateOrig, \$arrReg)) {\n        if(\$arrReg[2]==\"Jan\")      \$numMonth = \"01\";\n        else if(\$arrReg[2]==\"Feb\") \$numMonth = \"02\";\n        else if(\$arrReg[2]==\"Mar\") \$numMonth = \"03\";\n        else if(\$arrReg[2]==\"Apr\") \$numMonth = \"04\";\n        else if(\$arrReg[2]==\"May\") \$numMonth = \"05\";\n        else if(\$arrReg[2]==\"Jun\") \$numMonth = \"06\";\n        else if(\$arrReg[2]==\"Jul\") \$numMonth = \"07\";\n        else if(\$arrReg[2]==\"Aug\") \$numMonth = \"08\";\n        else if(\$arrReg[2]==\"Sep\") \$numMonth = \"09\";\n        else if(\$arrReg[2]==\"Oct\") \$numMonth = \"10\";\n        else if(\$arrReg[2]==\"Nov\") \$numMonth = \"11\";\n        else if(\$arrReg[2]==\"Dec\") \$numMonth = \"12\";\n        return \$arrReg[3] . \"-\" . \$numMonth . \"-\" . \$arrReg[1];\n    } else {\n        return false;\n    }\n}";
+            $c = preg_replace("/function translateDate\s*\([^)]*\)\s*\{.*?\n\}(?=\s*\n\s*function|\s*$)/s", $cleanTranslate, $c);
+            file_put_contents($file, $c);
+        ' "$MISC_LIB"
+        echo -e "${GREEN}  ✔ تابع translateDate در misc.lib.php به حالت استاندارد و اولیه ایزابل بازگردانده شد.${NC}"
+    fi
 fi
 
 # Clean Time Groups and Time Conditions
