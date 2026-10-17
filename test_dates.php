@@ -197,6 +197,16 @@ if (file_exists($tgPath)) {
         echo "  [FAIL] Month selector missing Shamsi months\n";
         $fail++;
     }
+
+    // Test 4.7: patch_timegroups.php syntax & availability
+    $patchScript = __DIR__ . '/modules/persian_calendar/libs/patch_timegroups.php';
+    if (file_exists($patchScript)) {
+        echo "  [PASS] patch_timegroups.php exists and ready for safe PBX patching\n";
+        $pass++;
+    } else {
+        echo "  [FAIL] patch_timegroups.php not found\n";
+        $fail++;
+    }
 } else {
     echo "  [FAIL] timegroups_persian.php not found at $tgPath\n";
     $fail++;

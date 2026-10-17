@@ -149,6 +149,10 @@ if [ -f "$MISC_LIB" ]; then
 fi
 
 # Clean Time Groups and Time Conditions
+if [ -f "$MODULE_DEST/libs/patch_timegroups.php" ]; then
+    php "$MODULE_DEST/libs/patch_timegroups.php" "$WEB_ROOT" uninstall 2>/dev/null || true
+fi
+
 TC_FUNCS="$WEB_ROOT/admin/modules/timeconditions/functions.inc.php"
 TC_PAGE="$WEB_ROOT/admin/modules/timeconditions/page.timegroups.php"
 
