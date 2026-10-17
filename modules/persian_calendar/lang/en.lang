@@ -1,0 +1,42 @@
+<?php
+/*
+  Issabel PBX - Persian Calendar Module
+  English Language File
+*/
+
+global $arrLangModule;
+$arrLangModule = array(
+    "Persian Calendar" => "Persian Calendar",
+    "Persian Calendar Module" => "Persian Calendar Module",
+    "Shamsi DatePicker & System Date Display" => "Shamsi DatePicker & System Date Display",
+    "General Settings" => "General Settings",
+    "Live Converter" => "Live Date Converter",
+    "System Status" => "System Status",
+    "Enable Persian Calendar" => "Enable Persian Calendar",
+    "Enable Shamsi DatePicker" => "Enable Shamsi DatePicker in Forms",
+    "Convert Dates in Grids & Tables" => "Convert Dates in Grids & Tables (CDR, Recordings, Logs)",
+    "Show Persian System Clock" => "Show Live Shamsi Clock in Header Bar",
+    "Date Format" => "Date Format",
+    "Number Format" => "Number Format",
+    "Persian Digits (۱۲۳)" => "Persian Digits (۱۲۳)",
+    "Latin Digits (123)" => "Latin Digits (123)",
+    "Show Gregorian Tooltip" => "Show Gregorian Date on Mouse Hover Tooltip",
+    "Convert Backend Requests" => "Automatically Convert Request Dates to Gregorian for SQL",
+    "Show Day of Week" => "Show Persian Day of Week",
+    "Save Changes" => "Save Changes",
+    "Settings saved successfully" => "Settings saved successfully",
+    "Could not save settings" => "Could not save settings. Please check file permissions.",
+    "Gregorian to Jalali" => "Gregorian to Jalali",
+    "Jalali to Gregorian" => "Jalali to Gregorian",
+    "Enter Date" => "Enter Date",
+    "Convert" => "Convert",
+    "Result" => "Result",
+    "Backend Hook Status" => "Backend Hook Status (index.php)",
+    "Tenant Theme Integration" => "Tenant Theme Integration",
+    "ElastixNeo Theme Integration" => "ElastixNeo Theme Integration",
+    "Config File Writable" => "Config File Writable",
+    "Installed & Active" => "Installed & Active",
+    "Not Installed / Detached" => "Not Installed / Detached",
+    "Repair / Re-apply Hooks" => "Repair / Re-apply Hooks",
+    "Hooks applied successfully" => "Hooks applied successfully"
+);

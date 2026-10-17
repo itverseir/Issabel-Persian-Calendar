@@ -1,0 +1,42 @@
+<?php
+/*
+  Issabel PBX - Persian Calendar Module
+  فایل ترجمه فارسی ماژول تقویم شمسی ایزابل
+*/
+
+global $arrLangModule;
+$arrLangModule = array(
+    "Persian Calendar" => "تقویم شمسی",
+    "Persian Calendar Module" => "ماژول تقویم شمسی ایزابل",
+    "Shamsi DatePicker & System Date Display" => "دیت‌پیکر شمسی و نمایش تاریخ‌های سیستم",
+    "General Settings" => "تنظیمات عمومی",
+    "Live Converter" => "ابزار تبدیل تاریخ",
+    "System Status" => "وضعیت سیستم و عیب‌یابی",
+    "Enable Persian Calendar" => "فعال‌سازی ماژول تقویم شمسی",
+    "Enable Shamsi DatePicker" => "فعال‌سازی دیت‌پیکر شمسی در تمامی فرم‌ها",
+    "Convert Dates in Grids & Tables" => "تبدیل تاریخ‌ها در جداول و گزارشات (CDR، ضبط مکالمات و لاگ‌ها)",
+    "Show Persian System Clock" => "نمایش ساعت و تاریخ زنده شمسی در نوار بالای سیستم",
+    "Date Format" => "فرمت نمایش تاریخ",
+    "Number Format" => "فرمت نمایش اعداد",
+    "Persian Digits (۱۲۳)" => "اعداد فارسی (۱۲۳)",
+    "Latin Digits (123)" => "اعداد لاتین (123)",
+    "Show Gregorian Tooltip" => "نمایش تاریخ میلادی با نگه داشتن ماوس روی تاریخ",
+    "Convert Backend Requests" => "تبدیل خودکار تاریخ‌های ارسالی به میلادی جهت کوئری‌های دیتابیس",
+    "Show Day of Week" => "نمایش نام روزهای هفته (شنبه، یکشنبه و...)",
+    "Save Changes" => "ذخیره تغییرات",
+    "Settings saved successfully" => "تنظیمات با موفقیت ذخیره شد.",
+    "Could not save settings" => "خطا در ذخیره تنظیمات. لطفاً دسترسی فایل را بررسی کنید.",
+    "Gregorian to Jalali" => "تبدیل میلادی به شمسی",
+    "Jalali to Gregorian" => "تبدیل شمسی به میلادی",
+    "Enter Date" => "ورود تاریخ",
+    "Convert" => "تبدیل کن",
+    "Result" => "نتیجه تبدیل",
+    "Backend Hook Status" => "وضعیت هوک بک‌اند در index.php",
+    "Tenant Theme Integration" => "وضعیت قالب Tenant (پیش‌فرض ایزابل)",
+    "ElastixNeo Theme Integration" => "وضعیت قالب ElastixNeo",
+    "Config File Writable" => "دسترسی نوشتن فایل پیکربندی",
+    "Installed & Active" => "نصب و فعال است",
+    "Not Installed / Detached" => "غیرفعال یا متصل نشده است",
+    "Repair / Re-apply Hooks" => "تعمیر و اتصال مجدد هوک‌ها",
+    "Hooks applied successfully" => "هوک‌ها با موفقیت اعمال و بازسازی شدند."
+);

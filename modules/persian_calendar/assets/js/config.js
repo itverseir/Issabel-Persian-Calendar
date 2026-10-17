@@ -1,0 +1,12 @@
+window.ISSABEL_PERSIAN_CONFIG = {
+  "enabled": true,
+  "datepicker_enabled": true,
+  "table_dates_enabled": true,
+  "header_clock_enabled": true,
+  "date_format": "YYYY/MM/DD",
+  "digits": "fa",
+  "show_gregorian_tooltip": true,
+  "convert_backend_requests": true,
+  "show_day_of_week": true,
+  "time_format": "24h"
+};

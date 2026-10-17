@@ -1,0 +1,73 @@
+/**
+ * Issabel PBX - Persian Localization & Time Display Styles
+ * Developed by: Amir Safari - ITVERSE.IR
+ * Copyright (c) 2024-2026 Amir Safari - ITVERSE.IR. All rights reserved.
+ * مالکیت مادی و معنوی: امیر صفری - ITVERSE.IR
+ */
+
+/* Live Persian System Clock in Header */
+.issabel-persian-clock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-family: 'Vazirmatn', 'Tahoma', 'Segoe UI', sans-serif;
+    direction: rtl;
+    margin: 0 10px;
+    user-select: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.issabel-persian-clock-badge .clock-icon {
+    font-size: 14px;
+    opacity: 0.85;
+}
+
+.issabel-persian-clock-badge .clock-time {
+    font-weight: bold;
+    color: #ffeb3b;
+    letter-spacing: 0.5px;
+}
+
+/* Converted Shamsi Dates in Tables (CDR, Monitoring, etc.) */
+.issabel-shamsi-date {
+    display: inline-block;
+    font-family: 'Vazirmatn', 'Tahoma', Arial, sans-serif;
+    font-size: 12px;
+    direction: ltr;
+    text-align: center;
+    cursor: help;
+    padding: 1px 4px;
+    border-radius: 3px;
+    transition: background-color 0.15s;
+    border-bottom: 1px dotted #999999;
+}
+
+.issabel-shamsi-date:hover {
+    background-color: #fff9c4;
+    border-bottom-color: #f57f17;
+}
+
+/* Date input fields with Persian Datepicker attached */
+input.issabel-persian-input {
+    direction: ltr !important;
+    text-align: center !important;
+    font-family: 'Vazirmatn', 'Tahoma', sans-serif !important;
+    cursor: pointer;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%23666" viewBox="0 0 16 16"><path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: calc(100% - 8px) center;
+    padding-right: 28px !important;
+}
+
+/* RTL theme enhancements */
+[dir="rtl"] input.issabel-persian-input {
+    background-position: 8px center;
+    padding-right: 8px !important;
+    padding-left: 28px !important;
+}

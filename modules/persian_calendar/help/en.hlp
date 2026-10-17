@@ -1,0 +1,30 @@
+<html>
+<header>
+  <link rel="stylesheet" href="/themes/tenant/styles.css">
+  <link rel="stylesheet" href="/themes/tenant/help.css">
+</header>
+<body>
+<h1>Persian Calendar for Issabel</h1>
+<p>The Persian Calendar module adds comprehensive Solar Hijri (Shamsi / Jalali) support to Issabel PBX.</p>
+
+<h2>Features:</h2>
+<ul>
+  <li><strong>Shamsi DatePicker:</strong> An interactive, responsive Persian datepicker in all date input fields (CDR reports, recordings, logs, etc.).</li>
+  <li><strong>Table & Grid Conversion:</strong> Transparently translates Gregorian timestamps in tables to Persian dates, with tooltips showing original Gregorian values on mouse hover.</li>
+  <li><strong>Live System Clock:</strong> Displays a real-time Shamsi date and clock in the top header bar.</li>
+  <li><strong>Transparent Backend Translation:</strong> Translates Jalali date filter requests into Gregorian dates before database queries, ensuring Asterisk CDR queries succeed without any database schema modification.</li>
+</ul>
+
+<h2>Settings:</h2>
+<ul>
+  <li><strong>Digits:</strong> Choose between Persian numerals (۱۲۳) or Latin numerals (123).</li>
+  <li><strong>Date Format:</strong> Choose between YYYY/MM/DD or YYYY-MM-DD format.</li>
+</ul>
+
+<hr style="margin-top:20px;border:0;border-top:1px solid #ccc;">
+<p style="font-size:12px;color:#666;">
+Developed by: Amir Safari - <a href="https://itverse.ir" target="_blank">ITVERSE.IR</a><br>
+All rights reserved.
+</p>
+</body>
+</html>
