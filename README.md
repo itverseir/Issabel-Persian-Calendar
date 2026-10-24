@@ -51,7 +51,7 @@
 
 ```bash
 cd /tmp
-wget https://github.com/itverseir/Issabel4-Persian-Calendar/archive/refs/heads/main.zip -O persian-calendar.zip
+wget https://github.com/itverseir/Issabel-Persian-Calendar/archive/refs/heads/main.zip -O persian-calendar.zip
 unzip persian-calendar.zip
 cd Issabel-Persian-Calendar-main
 chmod +x install.sh uninstall.sh
@@ -132,7 +132,7 @@ The installer automatically detects whether you are running **Issabel 4 (CentOS 
 
 ```bash
 cd /tmp
-wget https://github.com/itverseir/Issabel4-Persian-Calendar/archive/refs/heads/main.zip -O persian-calendar.zip
+wget https://github.com/itverseir/Issabel-Persian-Calendar/archive/refs/heads/main.zip -O persian-calendar.zip
 unzip persian-calendar.zip
 cd Issabel-Persian-Calendar-main
 chmod +x install.sh uninstall.sh
